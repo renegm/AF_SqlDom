@@ -10,7 +10,7 @@ using System.Text.Json;
 using System.Collections.Concurrent;
 
 
-namespace SQLDomAST;
+namespace AF_SqlDom;
 
 public class TreeNode
 {
@@ -181,9 +181,15 @@ public class SQLDomAST(ILogger<SQLDomAST> logger)
                 else if (PropName == "Identifiers")
                 {
                     var sb = new StringBuilder();
-                    for (int j = first; j <= last; j++)
-                        sb.Append(tokenStream[j].Text);
-
+                    // for (int j = first; j <= last; j++)
+                    //     sb.Append(tokenStream[j].Text);
+                    // Tempting but doesn't work because Tokens can contain comments like in 
+                    // SELECT C/*qqq*/.EndTime  FROM dbo.CommandLog AS C; 
+                    foreach (TSqlFragment Child in (IEnumerable)PropValue)
+                    {
+                        sb.Append(Child.ScriptTokenStream[Child.FirstTokenIndex].Text).Append('.');
+                    }
+                    sb.Length--;
                     Current.Identifier = sb.ToString();
                 }
                 else if (typeof(IEnumerable).IsAssignableFrom(type) && type != typeof(string))
