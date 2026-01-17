@@ -56,9 +56,9 @@ public class SqlDomRenamePolicy : JsonNamingPolicy
     }
 };
 
-public class SQLDomAST(ILogger<SQLDomAST> logger)
+public class SqlDomJson(ILogger<SqlDomJson> logger)
 {
-    private readonly ILogger<SQLDomAST> _logger = logger;
+    private readonly ILogger<SqlDomJson> _logger = logger;
 
     private static readonly HashSet<string> SkippedPropName = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
         {
@@ -78,7 +78,7 @@ public class SQLDomAST(ILogger<SQLDomAST> logger)
     private static readonly ConcurrentDictionary<Type, PropertyInfo[]> _propCache = new ConcurrentDictionary<Type, PropertyInfo[]>();
     private static readonly ConcurrentDictionary<Type, string> _typeNameCache = new ConcurrentDictionary<Type, string>();
 
-    [Function("SQLDomAST")]
+    [Function("SqlDomJson")]
     public async Task<HttpResponseData> Run([HttpTrigger(AuthorizationLevel.Function, "post")] HttpRequestData req, FunctionContext context)
     {
         _logger.LogInformation("C# HTTP trigger function processed a request.");
@@ -181,10 +181,16 @@ public class SQLDomAST(ILogger<SQLDomAST> logger)
                 else if (PropName == "Identifiers")
                 {
                     var sb = new StringBuilder();
-                    for (int j = first; j <= last; j++)
-                        sb.Append(tokenStream[j].Text);
-
-                    Current.Identifier = sb.ToString();
+                    // for (int j = first; j <= last; j++)
+                    //     sb.Append(tokenStream[j].Text);
+                    // Tempting but doesn't work because Tokens can contain comments like in 
+                    // SELECT C/*qqq*/.EndTime  FROM dbo.CommandLog AS C; 
+                    foreach (TSqlFragment Child in (IEnumerable)PropValue)
+                                {
+                                    sb.Append(Child.ScriptTokenStream[Child.FirstTokenIndex].Text).Append('.');
+                                }
+                                sb.Length--; 
+                     Current.Identifier = sb.ToString();
                 }
                 else if (typeof(IEnumerable).IsAssignableFrom(type) && type != typeof(string))
                 {
@@ -207,5 +213,4 @@ public class SQLDomAST(ILogger<SQLDomAST> logger)
 
         Tree.Add(Current);
     }
-
 }
