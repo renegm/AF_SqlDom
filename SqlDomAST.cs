@@ -29,32 +29,32 @@ public class TreeNode
 
 public class SqlDomRenamePolicy : JsonNamingPolicy
 {
-    public override string ConvertName(string name)
+    public static readonly Dictionary<string, string> Map = new()
     {
-        return name switch
-        {
-            "TreePath" => "a",
-            "NodeName" => "b",
-            "Type" => "c",
-            "FirstTokenIndex" => "d",
-            "LastTokenIndex" => "e",
-            "StartOffset" => "f",
-            "StartLine" => "g",
-            "StartColumn" => "h",
-            "FragmentLength" => "i",
-            "Identifier" => "j",
-            "OtherValues" => "k",
-            "TokenType" => "l",
-            "Offset" => "m",
-            "Line" => "n",
-            "Column" => "o",
-            "Text" => "p",
-            "Message" => "q",
-            "Number" => "r",
-            _ => name
-        };
-    }
-};
+        { "TreePath", "a" },
+        { "NodeName", "b" },
+        { "Type", "c" },
+        { "FirstTokenIndex", "d" },
+        { "LastTokenIndex", "e" },
+        { "StartOffset", "f" },
+        { "StartLine", "g" },
+        { "StartColumn", "h" },
+        { "FragmentLength", "i" },
+        { "Identifier", "j" },
+        { "OtherValues", "k" },
+        { "TokenType", "l" },
+        { "Offset", "m" },
+        { "Line", "n" },
+        { "Column", "o" },
+        { "Text", "p" },
+        { "Message", "q" },
+        { "Number", "r" }
+    };
+
+    public override string ConvertName(string name)
+        => Map.TryGetValue(name, out var shortName) ? shortName : name;
+}
+
 
 public class SQLDomAST(ILogger<SQLDomAST> logger)
 {
@@ -92,6 +92,23 @@ public class SQLDomAST(ILogger<SQLDomAST> logger)
             emptyResponse.Headers.Add("Content-Type", "application/json");
             await emptyResponse.WriteStringAsync("{}");
             return emptyResponse;
+        }
+        else if (sqlscript == "META")
+        {
+            var meta = new
+                {
+                    Keys = SqlDomRenamePolicy.Map,
+                    TokenTypes = Enum.GetValues<TSqlTokenType>()
+                        .Select(t => new { n = t.ToString(), v = (int)t })
+                        .ToList()
+                };
+
+                var metaResponse = req.CreateResponse(HttpStatusCode.OK);
+                metaResponse.Headers.Add("Content-Type", "application/json");
+
+                await metaResponse.WriteStringAsync(JsonSerializer.Serialize(meta));
+        
+            return metaResponse;
         }
 
         IList<TreeNode> TreeResult = new List<TreeNode>();
