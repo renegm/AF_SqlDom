@@ -88,13 +88,6 @@ public class SQLDomAST(ILogger<SQLDomAST> logger)
 
         if (string.IsNullOrWhiteSpace(sqlscript))
         {
-            var emptyResponse = req.CreateResponse(HttpStatusCode.OK);
-            emptyResponse.Headers.Add("Content-Type", "application/json");
-            await emptyResponse.WriteStringAsync("{}");
-            return emptyResponse;
-        }
-        else if (sqlscript == "META")
-        {
             var meta = new
                 {
                     Keys = SqlDomRenamePolicy.Map,
